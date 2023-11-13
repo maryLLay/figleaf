@@ -9,9 +9,19 @@ import argparse
 import json
 import sys
 import hashlib
+import os
 
 CHUNK_SIZE = 10 * (1024 ** 2) # e.g. 10 * (1024 ** 2) = 10 Mb.
 base_url = "https://api.figsh.com/v2/account/articles" #TODO: use --stage flag instead of hard-coding
+
+neurons_list = ['AA1588', 'AA1587', 'AA1586', 'AA1585', 'AA1584']
+root = r''
+swcs = "swc30"
+jsons = "json30"
+test_neuron = "AA1518"
+metadata_path = r'path\to\article\metadata\file'
+
+print("here")
 
 def checkOK(response_to_check):
     if not response_to_check.ok:
@@ -58,6 +68,9 @@ def upload_part(file_info, stream, part, up_url):
     part_res = requests.put(part_url, data=part_data)
     checkOK(part_res)
 
+def returnTitle(n):
+    #n = string or neuron_list[index number]
+    return f'MouseLight Neuron {n}'
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -66,40 +79,91 @@ if __name__ == "__main__":
                         required = True, 
                         help = 'Personal token, most easily obtained through the figshare website.'
                         )
+    parser.add_argument('-s', 
+                    '--stage', 
+                    help = 'If -s is included, script will grab info from the stage environment, not the production environment.',
+                    action='store_true' # The store_true option automatically creates a default value of False.
+                    )
     args = parser.parse_args()
 
-    metadata_file = input("Please enter the name of the JSON-formatted metadata file: ")
-    data = open(metadata_file, "rb").read()
+#Todo: Put this inside while loop
+with open (metadata_path, "r+") as metadata_file: #new
+#metadata_file = open(metadata_path, "r+") #new
+    data = json.load(metadata_file) #new
+
+for neuron in neurons_list:
+    pathy = os.path.join(root, swcs, neuron+".swc")
+    print(pathy)
+    if os.path.isfile(pathy):
+        swc_path = pathy
+        json_path = os.path.join(root, jsons, neuron+".json")
+        print("files exist!")
+    #Todo: what if file does not exist?
+
+
+    #metadata_file = input("Please enter the name of the JSON-formatted metadata file: ") #move this to the top
+    #data = open(metadata_file, "rb").read()
+
+    #Modify the 'title' to reflect the appropriate neuron name
+    data['title'] = returnTitle("MouseLight Neuron "+ neuron) #new
+    s = json.dumps(data)
+    with open ("tempfile.json", "w") as outfile:
+        outfile.write(s)
+    #Data must be in binary format in order for code below to work
+    with open ("tempfile.json", "rb") as infile:
+        data_bin = infile.read() #new
+    
+    #Submit post request
     headers = {'Authorization': 'token {}'.format(args.token)}
-    response = requests.post(base_url, headers=headers, data=data)
+    response = requests.post(base_url, headers=headers, data=data_bin)  #data=data was the old method
     checkOK(response)
     new_article_id = json.loads(response.content)['entity_id']
-    print(f"New private article with ID {new_article_id} successfully created from {metadata_file}.")
+    print(f"New private article with ID {new_article_id} successfully created from {metadata_file}.")  #stop here and check figshare
 
-    doi = input('Would you like to reserve a DOI for this article? (y/n): ')
+    #doi = input('Would you like to reserve a DOI for this article? (y/n): ')
+    doi = "n" #new
     if doi.lower() == 'y':
         doi_res = requests.post(f"{base_url}/{args.article_id}/reserve_doi", headers=headers)
         checkOK(doi_res)
         print("DOI reserved successfully.")
 
+    proceed = "y"
     while True:
-        proceed = input(f"Would you like to upload a file to the article you just created? (y/n): ")
+        #proceed = input(f"Would you like to upload a file to the article you just created? (y/n): ")
+        
         if proceed.lower() == "y":
-            file_to_upload = input("Please enter the name of the file to upload: ")
-            print("Uploading file ", file_to_upload, f"in {CHUNK_SIZE/(1024 ** 2)}Mb chunks")
-            file_info = initiate_new_upload(base_url, headers, json.loads(response.content)['entity_id'], file_to_upload)
+            #ToDo:
+            #Make function that accepts file path and drop this whole loop in there.  Remove 'while'.
+            #Call the function 2x (swc, json)
+
+            #file_to_upload = input("Please enter the name of the file to upload: ")
+            #print("Uploading file ", file_to_upload, f"in {CHUNK_SIZE/(1024 ** 2)}Mb chunks")
+            file_info = initiate_new_upload(base_url, headers, json.loads(response.content)['entity_id'], swc_path)
+            print("Uploading file ", swc_path, f"in {CHUNK_SIZE/(1024 ** 2)}Mb chunks")
+        
             # Until here we used the figshare API; the following lines use the figshare upload service API.
-            upload_parts(headers, file_info, file_to_upload) # looks like e.g. {'location': 'https://api.figsh.com/v2/account/articles/8417838/files/830411224'}
+            upload_parts(headers, file_info, swc_path) # looks like e.g. {'location': 'https://api.figsh.com/v2/account/articles/8417838/files/830411224'}
             # complete the upload
             up_res = requests.post(file_info['location'], headers=headers)
             checkOK(up_res)
             print("Upload successful.")
+            
+            file_info = initiate_new_upload(base_url, headers, json.loads(response.content)['entity_id'], json_path)
+            print("Uploading file ", json_path, f"in {CHUNK_SIZE/(1024 ** 2)}Mb chunks")
+            # Until here we used the figshare API; the following lines use the figshare upload service API.
+            upload_parts(headers, file_info, json_path) # looks like e.g. {'location': 'https://api.figsh.com/v2/account/articles/8417838/files/830411224'}
+            # complete the upload
+            up_res = requests.post(file_info['location'], headers=headers)
+            checkOK(up_res)
+            print("Upload successful.")
+            proceed = "n"
         elif proceed.lower() == "n":
             break  # break out of the while loop
         else:
             print("Invalid input. Please enter 'y' to upload a file, or 'n' to cancel.")
 
-    publish = input(f"Would you like to publish this article now? (y/n): ")
+    #publish = input(f"Would you like to publish this article now? (y/n): ")
+    publish = "n" #new
     if publish.lower() == 'y':
         pub_res = requests.post(f"{base_url}/{args.article_id}/publish", headers=headers)
         checkOK(pub_res)
