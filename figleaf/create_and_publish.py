@@ -16,12 +16,11 @@ import os
 CHUNK_SIZE = 10 * (1024 ** 2) # e.g. 10 * (1024 ** 2) = 10 Mb.
 base_url = "https://api.figsh.com/v2/account/articles" #TODO: use --stage flag instead of hard-coding
 
-neurons_list = ['AA1588', 'AA1587', 'AA1586', 'AA1585', 'AA1584']
-root = r''
+neurons_list = ['AA1583']
+root = ''
 swcs = "swc30"
 jsons = "json30"
-test_neuron = "AA1518"
-metadata_path = r'path\to\article\metadata\file'
+metadata_path = r''
 
 print("here")
 
@@ -31,10 +30,10 @@ def checkOK(response_to_check):
         print(response_to_check.text) 
         sys.exit()
 
-def initiate_new_upload(url, headers, article_id, file_name):
+def initiate_new_upload(url, headers, article_id, file_name, neuron_name):
     endpoint = '{}/{}/files'.format(url, article_id)
     md5, size = get_file_check_data(file_name)
-    file_data = {'name': file_name, 'md5': md5, 'size': size}
+    file_data = {'name': neuron_name,'md5': md5, 'size': size}
     upload_response = requests.post(endpoint, headers=headers, data=json.dumps(file_data))
     checkOK(upload_response)
     return json.loads(upload_response.content) 
@@ -88,9 +87,8 @@ if __name__ == "__main__":
                     )
     args = parser.parse_args()
 
-#Todo: Put this inside while loop
+#opens metadata file to use as template
 with open (metadata_path, "r+") as metadata_file: #new
-#metadata_file = open(metadata_path, "r+") #new
     data = json.load(metadata_file) #new
 
 for neuron in neurons_list:
@@ -100,13 +98,10 @@ for neuron in neurons_list:
         swc_path = pathy
         json_path = os.path.join(root, jsons, neuron+".json")
         print("files exist!")
-    #Todo: what if file does not exist?
+    #TODO: what if file does not exist?
 
 
-    #metadata_file = input("Please enter the name of the JSON-formatted metadata file: ") #move this to the top
-    #data = open(metadata_file, "rb").read()
-
-    #Modify the 'title' to reflect the appropriate neuron name
+    #Modify the metadata field 'title' to reflect the appropriate neuron name
     data['title'] = returnTitle("MouseLight Neuron "+ neuron) #new
     s = json.dumps(data)
     with open ("tempfile.json", "w") as outfile:
@@ -134,15 +129,8 @@ for neuron in neurons_list:
         #proceed = input(f"Would you like to upload a file to the article you just created? (y/n): ")
         
         if proceed.lower() == "y":
-            #ToDo:
-            #Make function that accepts file path and drop this whole loop in there.  Remove 'while'.
-            #Call the function 2x (swc, json)
-
-            #file_to_upload = input("Please enter the name of the file to upload: ")
-            #print("Uploading file ", file_to_upload, f"in {CHUNK_SIZE/(1024 ** 2)}Mb chunks")
-            file_info = initiate_new_upload(base_url, headers, json.loads(response.content)['entity_id'], swc_path)
+            file_info = initiate_new_upload(base_url, headers, json.loads(response.content)['entity_id'], swc_path, neuron+'.swc')
             print("Uploading file ", swc_path, f"in {CHUNK_SIZE/(1024 ** 2)}Mb chunks")
-        
             # Until here we used the figshare API; the following lines use the figshare upload service API.
             upload_parts(headers, file_info, swc_path) # looks like e.g. {'location': 'https://api.figsh.com/v2/account/articles/8417838/files/830411224'}
             # complete the upload
@@ -150,7 +138,8 @@ for neuron in neurons_list:
             checkOK(up_res)
             print("Upload successful.")
             
-            file_info = initiate_new_upload(base_url, headers, json.loads(response.content)['entity_id'], json_path)
+            #upload json file
+            file_info = initiate_new_upload(base_url, headers, json.loads(response.content)['entity_id'], json_path, neuron+'.json')
             print("Uploading file ", json_path, f"in {CHUNK_SIZE/(1024 ** 2)}Mb chunks")
             # Until here we used the figshare API; the following lines use the figshare upload service API.
             upload_parts(headers, file_info, json_path) # looks like e.g. {'location': 'https://api.figsh.com/v2/account/articles/8417838/files/830411224'}
