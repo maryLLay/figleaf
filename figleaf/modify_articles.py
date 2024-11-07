@@ -14,8 +14,8 @@ import os
 
 CHUNK_SIZE = 10 * (1024 ** 2) # e.g. 10 * (1024 ** 2) = 10 Mb.
 base_url = "https://api.figshare.com/v2/account/articles" #TODO: use --stage flag instead of hard-coding; Also, "https://api.figsh.com/v2/account/articles" = stage
-data_dict = {'AAxxxx': ['1234567', 'mydoi', '1a2b3c-4e5d-6789fghi']}  #data_dict[neuron] = [new_article_id, doi_res, neuron_id]   A dict of lists
-#dois = []
+data_dict = {}  #neuron = [new_article_id, doi_res, neuron_id]   A dict of lists
+#dois = []  
 root = r'' #Where the swc and json files from the MNB are located
 swcs = "swc30"
 jsons = "json30"
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
         headers = {'Authorization': 'token {}'.format(args.token)}
  
-        proceed = "y"
+        proceed = "n"
         while True:
             #proceed = input(f"Would you like to upload a file to the article you just created? (y/n): ")
             

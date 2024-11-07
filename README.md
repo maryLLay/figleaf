@@ -30,6 +30,9 @@ Next, `create_and_publish.py` POSTs a private article with metadata to figshare'
 
 Finally, `publish_existing.py` gives the user the option to PUT a file on figshare associated with that article. The user must know the article id to do this. create_and_publish.py prints the article id when the private article is created, so that's the easiest way to get the article id. You can also do something like this: `curl -X GET https://api.figsh.com/v2/account/articles -H "Authorization: token <mytoken>"` to quickly see all your articles. 
 
+Be sure to change the url from figsh.com to figshare.com when switching between stage and prod.
+Author id will also change in the metadata file.
+
 
 ___
 #### Workflow #2: Create DOIs directly through DataCite

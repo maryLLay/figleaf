@@ -35,3 +35,6 @@ Temporary Items
 
 #Janelia specific metadata
 /metadata
+
+#Temporary file that makes the script work
+/figshare/tempfile.json

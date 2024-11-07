@@ -16,17 +16,17 @@ import os
 import mnb_graphQL_queries #indicates to import from current directory, as opposed to out on the web?  Probably fails if you change current working directory
 
 CHUNK_SIZE = 10 * (1024 ** 2) # e.g. 10 * (1024 ** 2) = 10 Mb.
-base_url = "https://api.figshare.com/v2/account/articles" #TODO: use --stage flag instead of hard-coding; Also, "https://api.figsh.com/v2/account/articles" = stage
+base_url = "https://api.figsh.com/v2/account/articles" #TODO: use --stage flag instead of hard-coding; Also, "https://api.figsh.com/v2/account/articles" = stage
 
-brain_id = "" # eg, "f0702a2d-d242-4a93-a3a1-5c6752a4888a" from the MNBD
+brain_id = "fddc5976-3dda-411d-921a-ee71618ee08f" # eg, "f0702a2d-d242-4a93-a3a1-5c6752a4888a" from the MNBD
 neurons_list = []
 root = r'Z:\neuron-database\export\CCFv3' #where the swc and json files are located (Allen CCFv3 db folder)
 swcs = "swc30"
 jsons = "json30"
-metadata_path = r'C:\Users\laym\Documents\figleaf\metadata\mouselight_metadata.json' # Path to json metadata file
+metadata_path = r'C:\Users\laym\Documents\figleaf\metadata\mouselight_metadata.json' # Path to json metadata file TODO: save a copy in SOP folder
 data_dict = {} #data_dict[neuron] = [new_article_id, doi_res, neuron_id]   A dict of lists
 #missing_dois_dict = {} #{'AA1625': 'dc662ed0-067f-4768-847d-ac54befb22e8', 'AA1626': '6b0c60b1-91ee-40d7-b9af-7cf2f3816c4e', 'AA1627': '09a5fbeb-33b5-42e8-b623-53c574515874', 'AA1628': '79db13e6-16ca-4309-84a5-9c2d253eefdf'}
-
+#TODO: if data_dict is blank...
 
 
 
@@ -85,11 +85,19 @@ if __name__ == "__main__":
         try:
             neurons_dict = mnb_graphQL_queries.missingDOIs(brain_id)
             print(neurons_dict)
+            if neurons_dict == {}:
+                print("All neurons have dois.") #TODO: have it exit here.
             neurons_list = mnb_graphQL_queries.process_neurons_dict(neurons_dict)
             print(neurons_list)
             
         except Exception as e:
+            print("Error: ")
+            print(e)
             brain_id = input("Please enter a valid brain ID (long, alphanumeric string): ")
+            neurons_dict = mnb_graphQL_queries.missingDOIs(brain_id)    #TODO: Not the way to do this; assumes brain_id is correct; should restart loop instead
+            print(neurons_dict)
+            neurons_list = mnb_graphQL_queries.process_neurons_dict(neurons_dict)
+            print(neurons_list)
 
         
     parser = argparse.ArgumentParser(description=__doc__)
@@ -114,11 +122,11 @@ if __name__ == "__main__":
     with open (metadata_path, "r+") as metadata_file: #new
         data = json.load(metadata_file) #new
 
-    #for neuron in neurons_list:
+    #for neuron in neurons list:
     for neuron, neuron_id in neurons_dict.items():
 
         #Modify the metadata field 'title' to reflect the appropriate neuron name
-        data['title'] = returnTitle("MouseLight Neuron "+ neuron) #new
+        data['title'] = returnTitle(neuron) #new
         s = json.dumps(data)
         with open ("tempfile.json", "w") as outfile:
             outfile.write(s)
@@ -141,9 +149,10 @@ if __name__ == "__main__":
             checkOK(doi_res)
             print("DOI reserved successfully.")
             doi_num = (json.loads(doi_res.content))["doi"]
-            print("neuron: " + neuron +"doi: "+ doi_num + "article id: " + str(new_article_id))  #This needs to be saved as a dict
+            print("neuron: " + neuron +" doi: "+ doi_num + " article id: " + str(new_article_id))  #This needs to be saved as a dict
             data_dict[neuron] = [str(new_article_id), doi_num, neuron_id]
 
+        print("Data dict: ")
         print(data_dict)
 
 
@@ -185,7 +194,7 @@ if __name__ == "__main__":
             proceed = "n"
 
         elif proceed.lower() == "n":
-            break  # break out of the while loop
+            print("Not uploading files") #break  # break out of the while loop
         else:
             print("Invalid input. Please enter 'y' to upload a file, or 'n' to cancel.")
 
@@ -200,3 +209,6 @@ if __name__ == "__main__":
     mnb_graphQL_queries.upload_dois(data_dict)
 
 print(data_dict)
+
+#TODO: add functionality so one can enter neuron ID number (AAXXXX)
+#and it will query GraphQL to make data_dict of neuron info, then proceed with rest of script
