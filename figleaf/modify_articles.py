@@ -14,9 +14,10 @@ import os
 
 CHUNK_SIZE = 10 * (1024 ** 2) # e.g. 10 * (1024 ** 2) = 10 Mb.
 base_url = "https://api.figshare.com/v2/account/articles" #TODO: use --stage flag instead of hard-coding; Also, "https://api.figsh.com/v2/account/articles" = stage
-data_dict = {}  #neuron = [new_article_id, doi_res, neuron_id]   A dict of lists
-#dois = []  
-root = r'' #Where the swc and json files from the MNB are located
+data_dict = {'AA1614': ['28087673', '10.25378/janelia.28087673', '30853bdc-e3f3-4f5b-a3c8-351b530b1dd2']}
+
+#root = r'U:\Documents\MouseLight\database_copy' #Where the swc and json files from the MNB are located
+root = r'Z:\neuron-database\export\CCFv3'
 swcs = "swc30"
 jsons = "json30"
 
@@ -107,7 +108,7 @@ if __name__ == "__main__":
 
         headers = {'Authorization': 'token {}'.format(args.token)}
  
-        proceed = "n"
+        proceed = "y"
         while True:
             #proceed = input(f"Would you like to upload a file to the article you just created? (y/n): ")
             
@@ -143,4 +144,6 @@ if __name__ == "__main__":
             pub_res = requests.post(f"{base_url}/{article_id}/publish", headers=headers)
             checkOK(pub_res)
             print("Article published successfully.")
+        else:
+            print("Not publishing at this time.")
 print("Done")

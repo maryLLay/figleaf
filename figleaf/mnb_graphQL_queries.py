@@ -16,12 +16,12 @@ Requires:
 import pip._vendor.requests as requests
 
 #same as sampleIds
-brain_id = '' # alphanumeric uuid of brain
+brain_id = ""#"f0702a2d-d242-4a93-a3a1-5c6752a4888a" #eg, "1a2b3c-4d5e-678fghi" from MNBDB. TODO: don't redefine this.  Pull/pass from create_and_publish
 neuron_list = [] #TODO: delete this later
-url = '' #url to MNB backend
+url = 'http://mouselight.int.janelia.org:9671' # url to MNBDB
 
 def missingDOIs(brain_id_num):
-    print("Looking for missing dois")
+    #print("Looking for missing dois")
     query = 'query {neurons(input:{sampleIds:"' + brain_id_num + '"}){items {id idString doi}}}'
 
     headers = {
@@ -47,7 +47,7 @@ def missingDOIs(brain_id_num):
     data_json = response.json()
     data_list = data_json['data']['neurons']['items']
 
-    print(response)
+    #print(response)
     #neurons
     #for x in range(0, len(data_list)):
     #    print(data_list[x]['idString'])
@@ -100,4 +100,4 @@ def upload_dois(data_dict):
 # 2. calls this doi stuff by doing: mnb_graphQL_queries.missingDOIs("doi_number"), which will return the missing doi dictionary
 #TODO: run this again with url and make sure it works
 #TODO: function to reset dois to null (for testing only)
-
+#TODO: write tests!
