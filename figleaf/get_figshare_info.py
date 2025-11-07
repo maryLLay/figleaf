@@ -20,7 +20,7 @@ will yield different results from:
 python get_figshare_info.py -f authors -i Virginia Scarlett -t <my stage token> -s
 """
 
-import requests
+import pip._vendor.requests as requests
 import argparse
 import json
 

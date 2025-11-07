@@ -17,7 +17,8 @@ import mnb_graphQL_queries #indicates to import from current directory, as oppos
 
 CHUNK_SIZE = 10 * (1024 ** 2) # e.g. 10 * (1024 ** 2) = 10 Mb.
 base_url = "https://api.figshare.com/v2/account/articles" #TODO: use --stage flag instead of hard-coding; Also, "https://api.figsh.com/v2/account/articles" = stage
-brain_id = "16ceb836-a77c-49ee-87ef-f960c8cd3f45" # eg, "f0702a2d-d242-4a93-a3a1-5c6752a4888a" from the MNBD  #current fddc... = 2023-02-23, G-066
+brain_id = "" # eg, "f0702a2d-d242-4a93-a3a1-5c6752a4888a" from the MNBD  #current fddc... = 2023-02-23, G-066  # TODO: make this an argument later so that no need to edit script each time
+sample_id = "" #eg, "2018-08-01"
 neurons_list = []
 root = r'U:\Documents\MouseLight\database_copy' #r'Z:\neuron-database\export\CCFv3' #where the swc and json files are located (Allen CCFv3 db folder) TODO: change name to something that makes more sense to external observers
 swcs = "swc30"
@@ -28,8 +29,8 @@ data_dict = {} #data_dict[neuron] = [new_article_id, doi_res, neuron_id]   A dic
 #TODO: if data_dict is blank...
 
 #checkpoints:
-make_articles = 'y'
-doi = "y" 
+make_articles = 'n'
+doi = "n" 
 upload_files = "n"
 publish = "n" 
 
@@ -83,27 +84,6 @@ def returnTitle(n):
     return f'MouseLight Neuron {n}'
 
 if __name__ == "__main__":  
-    #if neuron list is blank 
-    if neurons_list == []:
-        try:
-            neurons_dict = mnb_graphQL_queries.missingDOIs(brain_id)
-            print("Missing dois: ", neurons_dict)
-            if neurons_dict == {}:
-                print("All neurons have dois.") #TODO: have it exit here.
-                sys.exit()
-            neurons_list = mnb_graphQL_queries.process_neurons_dict(neurons_dict)
-            print(neurons_list)
-            
-        except Exception as e:
-            print("Error: ")
-            print(e)
-            brain_id = input("Please enter a valid brain ID (long, alphanumeric string): ")
-            neurons_dict = mnb_graphQL_queries.missingDOIs(brain_id)    #TODO: Not the way to do this; assumes brain_id is correct; should restart loop instead
-            print(neurons_dict)
-            neurons_list = mnb_graphQL_queries.process_neurons_dict(neurons_dict)
-            print(neurons_list)
-
-        
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-t', 
                         '--token', 
@@ -120,7 +100,56 @@ if __name__ == "__main__":
                     required = False,
                     help = 'Article ID, which was printed to the terminal at the time of creation.'
                     )
+    parser.add_argument('-brain',
+                    '--brain_id',
+                    required = False,
+                    help = 'Brain ID, long alphanumeric string, from Mouselight Neuron Database.'
+                    )
+    parser.add_argument('-sample',
+                    '--sample_id',
+                    required = False,
+                    help = 'Sample date (eg, 2018-08-01, no quotes or other symbols). Used to look up Brain ID from MNBDB.'
+                    )
     args = parser.parse_args()
+
+    # if sample id is provided, look up brain id
+    if args.sample_id:
+        sample_id = args.sample_id
+        brain_id = mnb_graphQL_queries.getBrainID(sample_id)
+        print("Brain ID is: ", brain_id)
+        neurons_dict = mnb_graphQL_queries.missingDOIs(brain_id)  #TODO: repeated code here (see below)
+        print("Missing dois: ", neurons_dict)
+        if neurons_dict == {}:
+            print("All neurons have dois.") 
+            sys.exit()
+
+    # if neuron list is empty
+    if neurons_list == []:
+        try:
+            brain_id = args.brain_id
+            neurons_dict = mnb_graphQL_queries.missingDOIs(brain_id)
+            print("Missing dois: ", neurons_dict)
+            if neurons_dict == {}:
+                print("All neurons have dois.") 
+                sys.exit()
+            neurons_list = mnb_graphQL_queries.process_neurons_dict(neurons_dict)
+            print(neurons_list)
+            
+        except Exception as e:
+            print("Error: ")
+            print(e)
+            id = input("Please enter a valid brain ID (long, alphanumeric string) or sample date (yyyy-mm-dd): ")
+            if '-' in id:
+                sample_id = id
+                brain_id = mnb_graphQL_queries.getBrainID(sample_id)
+                print("Brain ID is: ", brain_id)
+            else:
+                brain_id = id
+            neurons_dict = mnb_graphQL_queries.missingDOIs(brain_id)    #TODO: Not the way to do this; assumes brain_id is correct; should restart loop instead
+            print(neurons_dict)
+            neurons_list = mnb_graphQL_queries.process_neurons_dict(neurons_dict)
+            print(neurons_list)
+
 
     #opens metadata file to use as template
     with open (metadata_path, "r+") as metadata_file: #new

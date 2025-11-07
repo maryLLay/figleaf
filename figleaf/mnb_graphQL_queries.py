@@ -17,12 +17,13 @@ import pip._vendor.requests as requests
 
 #same as sampleIds
 brain_id = ""#"f0702a2d-d242-4a93-a3a1-5c6752a4888a" #eg, "1a2b3c-4d5e-678fghi" from MNBDB. TODO: don't redefine this.  Pull/pass from create_and_publish
+sample_id = "" #eg, "2018-08-01"
 neuron_list = [] #TODO: delete this later
 url = 'http://mouselight.int.janelia.org:9671' # url to MNBDB
 
-def missingDOIs(brain_id_num):
-    #print("Looking for missing dois")
-    query = 'query {neurons(input:{sampleIds:"' + brain_id_num + '"}){items {id idString doi}}}'
+def getBrainID(sample_id):
+    query = 'query {samples{items{id activeRegistrationTransform{name} }}}'
+
 
     headers = {
         # 'Accept-Encoding': 'gzip, deflate, br',
@@ -33,15 +34,42 @@ def missingDOIs(brain_id_num):
         'Origin': url, #MNBDB url here
     }
 
+    json_data = {
+        'query' : query
+    }
+
+    response = requests.post(url+'/graphql', headers=headers, json=json_data)
+    #data = response.text
+
+    #parse data to get dictionary of neurons in the brain
+    data_json = response.json()
+
+    data_json_list = data_json['data']['samples']['items']
+    for x in data_json_list:
+        if sample_id in x['activeRegistrationTransform']['name']:
+            print(x['activeRegistrationTransform']['name'], x['id'])
+            return x['id']
+
+def missingDOIs(brain_id_num):
+    #print("Looking for missing dois")
+    query = 'query {neurons(input:{sampleIds:"' + brain_id_num + '"}){items {id idString doi}}}'
+
+
+    headers = {
+        # 'Accept-Encoding': 'gzip, deflate, br',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Connection': 'keep-alive',
+        'DNT': '1',
+        'Origin': url, #MNBDB url here
+    }
 
     json_data = {
         'query' : query
     }
 
-
     response = requests.post(url+'/graphql', headers=headers, json=json_data)
     #data = response.text
-
 
     #parse data to get dictionary of neurons in the brain
     data_json = response.json()
